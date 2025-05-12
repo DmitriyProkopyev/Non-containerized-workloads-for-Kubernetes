@@ -1,20 +1,9 @@
-package main
+package nomadapply
 
 import (
-    "context"
     "fmt"
-    "time"
-
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/apimachinery/pkg/watch"
-    "k8s.io/client-go/dynamic"
-    "k8s.io/client-go/rest"
-    "k8s.io/apimachinery/pkg/runtime/schema"
-    "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
     nomad "github.com/hashicorp/nomad/api"
 )
-
 
 type Affinity struct {
     NodeAffinity struct {
@@ -64,7 +53,7 @@ func affinityToConstraints(affinity Affinity) []*nomad.Constraint {
     return constraints
 }
 
-func syncNomadState(spec NomadStatefulWorkloadSpec, jobName string, nomadClient *nomad.Client) (string, error) {
+func ApplyNomadDesiredState(spec NomadStatefulWorkloadSpec, jobName string, nomadClient *nomad.Client) (string, error) {
     job, _, err := nomadClient.Jobs().Info(jobName, nil)
     if err != nil || job == nil {
         newJob := nomad.NewServiceJob(jobName, jobName, "default", 100)
@@ -98,78 +87,4 @@ func syncNomadState(spec NomadStatefulWorkloadSpec, jobName string, nomadClient 
     }
 
     return *job.ID, nil
-}
-
-
-func main() {
-    config, err := rest.InClusterConfig()
-    if err != nil {
-        panic(err)
-    }
-    dyn, err := dynamic.NewForConfig(config)
-    if err != nil {
-        panic(err)
-    }
-
-    nomadClient, err := nomad.NewClient(nomad.DefaultConfig())
-    if err != nil {
-        panic(err)
-    }
-
-    // TODO: update parameters here
-    gvr := schema.GroupVersionResource{
-        Group:    "your.group",
-        Version:  "v1alpha1",
-        Resource: "nomadstatefulworkloads",
-    }
-
-    for {
-        w, err := dyn.Resource(gvr).Namespace("").Watch(context.Background(), metav1.ListOptions{})
-        if err != nil {
-            fmt.Println("Error in watch:", err)
-            time.Sleep(5 * time.Second)
-            continue
-        }
-        ch := w.ResultChan()
-        for event := range ch {
-            obj := event.Object.(*unstructured.Unstructured)
-            name := obj.GetName()
-            specMap, found, _ := unstructured.NestedMap(obj.Object, "spec")
-            if !found {
-                continue
-            }
-            specBytes, _ := json.Marshal(specMap)
-            var spec NomadStatefulWorkloadSpec
-            json.Unmarshal(specBytes, &spec)
-
-            jobID, err := syncNomadState(spec, name, nomadClient)
-            if err != nil {
-                fmt.Printf("Error in synchronization for %s: %v\n", name, err)
-                continue
-            }
-
-            status := map[string]interface{}{
-                "jobId": jobID,
-            }
-            _, err = dyn.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(
-                context.Background(),
-                &unstructured.Unstructured{
-                    Object: map[string]interface{}{
-                        "apiVersion": obj.GetAPIVersion(),
-                        "kind":       obj.GetKind(),
-                        "metadata": map[string]interface{}{
-                            "name":      name,
-                            "namespace": obj.GetNamespace(),
-                        },
-                        "status": status,
-                    },
-                },
-                metav1.UpdateOptions{},
-            )
-            if err != nil {
-                fmt.Printf("Error in CRD status update: %v\n", err)
-            }
-        }
-        fmt.Println("Watch channel is closed, reconnecting...")
-    }
 }
