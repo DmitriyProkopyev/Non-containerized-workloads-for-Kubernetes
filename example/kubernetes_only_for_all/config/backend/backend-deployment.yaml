@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: sayfetik/backend:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: MONGO_URI
+          value: "mongodb://mongo:27017"
+        - name: MONGO_DB_NAME
+          value: "testdb"
+        - name: OTEL_SERVICE_NAME
+          value: "backend"
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://jaeger:14268/api/traces"
