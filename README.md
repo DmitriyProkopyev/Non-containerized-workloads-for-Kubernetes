@@ -1,87 +1,122 @@
-# Non containerized workloads for Kubernetes
-This project integrates Nomad HashiCorp with Kubernetes API to achieve native-like management of non-containerized workloads through Kubernetes. This approach addresses the issues of disk I/O performance degradation as a result of containerization, allowing to manage containerized microservices and non-containerized disk-heavy services together. 
+# Distributed-database-deployment-exercise
 
-## Project Motivation
-
-**Context** 
-When building *high-reliability high-load large-scale distributed systems*, components orchestration is always required. One of the most widely used orchestration systems that fits a variety of use cases is `Kubernetes`. System "components" managed by `Kubernetes` are often called **workloads**.
-
-**Workload types**
- - **Stateless**
-  - most microservices
-   - some load balancers (e.g. Nginx by default)
- - **Stateful non-persistent**
-   - some microservices (e.g. ones that cache some user data or enable background processing for heavy requests)
-   - some caches (e.g. Redis by default)
-   - some load balancers (e.g. Nginx when setup to cache data)
- - **Stateful persistent**
-   - all databases
-   - some caches (e.g. Redis when setup to persist the cache)
-   - message brokers (e.g. Apache Kafka)
-   - log aggregation systems
-
-**Issue 1:**
-**Stateful persistent workloads** heavily rely on **disk I/O operations**. However, these operations suffer intense performance degradation when executed in containerized environments (tests report up to **10x** slowdown).
-
-> **Potential solution:**
-> Deploy bare-metal stateful persistent workloads and manage them as non-containerized workloads in Kubernetes.
-
-**Issue 2:**
-Kubernetes does not natively support non-containerized workloads, nor does it have any plugins for such purposes
-
-> **Potential solution:**
-> Manage stateful persistent workloads outside of Kubernetes.
-
-**Issue 3:**
-Databases, message brokers, caches and other workloads have to be auto-scaled, auto-healed, updated, distributed, and controlled in the same way as all the other workloads. Implementing this functionality outside of Kubernetes is not feasible and is redundant.
-
-> **Potential solution:**
-> Use a Kubernetes alternative that supports both containerized and non-containerized environments, e.g. HashiCorp Nomad.
-
-**Issue 4:**
-While being feasible, this solution sacrifices the Kubernetes capabilities in exchange for support for non-containerized workloads. At the moment, Kubernetes is the superior choice among all alternatives for a general case. Thus, it is highly desired to avoid sacrificing Kubernetes.
-
-> **Potential solution:**
-> Combine Kubernetes with Nomad, using the first for containerized workloads and using the second for non-containerized workloads.
-
-**Issue 5:**
-This solution is acceptable, but inconvenient, since it now requires to setup two centralized orchestration systems. Having two sets of configurations, two implementations for every reliability mechanism and so on is undesirable.
-
-> **Actual solution:**
-> **Integrate** Nomad capabilities of orchestrating non-containerized workloads **into Kubernetes** using Kubernetes API. Build an abstraction level, so that every non-contsinerized workload appears as a native *"pseudo-container"* in Kubernetes.
+This repository contains a group exercise on deploying a reliable distributed database system using Kubernetes.
 
 ---
 
-## Project Requirements
+## Getting Started
 
-**Goal:**
-Allow seamless integration of any non-containerized workloads into Kubernetes without compromising any functionality.
+### 1. Clone the repository
 
-**Objective 1:**
-Implement a Nomad abstraction layer under Kubernetes API for managing stateful persistent non-containerized workloads as "pseudo-containers", enabling native integration through Kubernetes CRD.
+```sh
+git clone https://github.com/DmitriyProkopyev/Distributed-database-deployment-exercise.git
+cd Distributed-database-deployment-exercise
+```
 
-**Objective 2:**
-Simplify the process of configuring new workloads to match the Kubernetes native configurations as much as possible.
+---
 
-**Objective 3:**
-Create a Linux package for the API translation (integration) system with simplified configuration
+## Installation
 
-**Objective 4 (optional):**
-Provide default setups for frequently used services:
-- Databases
-  - PostgreSQL (relational)
-  - MongoDB (no sql)
-  - MinIO (file storage)
-  - Weaviate (vector storage)
-  - Prometheus (metrics collection)
-  - Loki (storage and indexing of logs)
-- Message Brokers
-  - Apache Kafka
+### 2. Install Minikube and kubectl
 
-**Deliverables:**
-Git repository containing:
-1. Implementation of integration of Nomad into Kubernetes API
-2. Simple and flexible configuration file(s) for setting up non-containerized workloads with the expressive power of Kubernetes configuration
-3. Linux package release encapsulating the entire system
-4. Example configurations for frequently used services from Objective 4 (optional)
-5. Clear, concise, and easily usable documentation with installation and usage specifications
+#### Install kubectl
+
+```sh
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+kubectl version --client
+```
+
+#### Install Minikube
+
+```sh
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube version
+```
+
+---
+
+## Usage
+
+### 3. Start Minikube
+
+```sh
+minikube start --driver=docker --memory=4096 --cpus=2
+```
+
+---
+
+### 4. Deploy the configuration
+
+```sh
+kubectl apply -f ./config/mongodb
+```
+
+---
+
+### 5. Check deployment status
+
+```sh
+kubectl get pods
+kubectl get svc
+```
+
+---
+
+### 6. Check Minikube status
+
+```sh
+minikube status
+```
+
+---
+
+### 7. Launch the Kubernetes dashboard
+
+```sh
+minikube dashboard
+```
+A browser tab will open at [http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/](http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/).  
+Here you can view all your Kubernetes resources, check pod logs, and monitor the cluster status.  
+- The **"Workloads"** tab shows all running pods and deployments.
+- The **"Services"** tab lists all exposed services and their cluster IPs.
+- You can use the **"Logs"** button next to any pod to view its logs.
+
+---
+
+### 8. Access the application UI
+
+Once the backend services (e.g., MongoDB) are deployed, open your browser and navigate to `http://localhost:3000` to access the application UI.
+
+- **What you will see:**
+  - The UI displays a settings panel where you can modify your preferences.
+  - You will see fields to set:
+    - User Name
+    - Email
+    - Language
+    - Theme
+    - Email notifications
+  - There are buttons for saving changes or discarding them.
+
+- **Functionality:**
+  - **Save Button:** If you click the "Save" button, the data you entered will be stored in the distributed database. You can refresh the page to verify that your changes were successfully saved.
+  - **No Save:** If you don’t save the changes, the data won't be stored, and you won't be able to see the updated values when you navigate back.
+
+After making changes, feel free to refresh the page to check the status of your saved data.
+
+
+---
+
+### 9. Access Jaeger dashboard
+
+If Jaeger is deployed, you can access the tracing dashboard at [http://localhost:16686](http://localhost:16686).  
+- Here you can view traces of requests passing through your distributed system.
+- Use the search panel to select a service and see detailed traces.
+
+---
+
+## Project Structure
+
+- `config/` — Kubernetes manifests for deploying the distributed database and related services.

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tracing-headless
+spec:
+  clusterIP: None
+  selector:
+    app: tracing
+  ports:
+    - name: query-ui
+      port: 16686
+      targetPort: 16686
+    - name: collector
+      port: 14268
+      targetPort: 14268

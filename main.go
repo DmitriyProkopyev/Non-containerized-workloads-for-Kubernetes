@@ -53,32 +53,36 @@ func main() {
 }
 
 func handleEvent(dynClient dynamic.Interface, obj interface{}) {
-	unstructuredObj := obj.(map[string]interface{})
-	metadata := unstructuredObj["metadata"].(map[string]interface{})
-	name := metadata["name"].(string)
-	namespace := metadata["namespace"].(string)
+    unstructuredObj := obj.(map[string]interface{})
+    metadata := unstructuredObj["metadata"].(map[string]interface{})
+    name := metadata["name"].(string)
+    
+    // Добавляем получение namespace
+    namespace, ok := metadata["namespace"].(string)
+    if !ok || namespace == "" {
+        namespace = "default"
+    }
 
-	specBytes, err := json.Marshal(unstructuredObj["spec"])
-	if err != nil {
-		log.Printf("failed to marshal spec: %v", err)
-		return
-	}
+    specBytes, err := json.Marshal(unstructuredObj["spec"])
+    if err != nil {
+        log.Printf("failed to marshal spec: %v", err)
+        return
+    }
 
-	var spec NomadWorkloadSpec
-	if err := json.Unmarshal(specBytes, &spec); err != nil {
-		log.Printf("failed to unmarshal spec: %v", err)
-		return
-	}
+    var spec NomadWorkloadSpec
+    if err := json.Unmarshal(specBytes, &spec); err != nil {
+        log.Printf("failed to unmarshal spec: %v", err)
+        return
+    }
 
-	log.Printf("📦 Desired state - Replicas: %d, CPU: %d, Mem: %d", spec.Replicas, spec.Resources.CPU, spec.Resources.Memory)
+    log.Printf("📦 Desired state - Replicas: %d, CPU: %d, Mem: %d", spec.Replicas, spec.Resources.CPU, spec.Resources.Memory)
 
-	actualReplicas := fetchNomadState(name)
+    actualReplicas := fetchNomadState(name)
 
-	if actualReplicas != spec.Replicas {
-		log.Printf("🔁 Reconciling %s: actual replicas %d ≠ desired %d", name, actualReplicas, spec.Replicas)
-		// Подключение к логике из controller.go
-		ReconcileNomadStatus(dynClient, name, namespace)
-	}
+    if actualReplicas != spec.Replicas {
+        log.Printf("🔁 Reconciling %s: actual replicas %d ≠ desired %d", name, actualReplicas, spec.Replicas)
+        ReconcileNomadStatus(dynClient, name, namespace) // Теперь с корректным namespace
+    }
 }
 
 func fetchNomadState(name string) int {
