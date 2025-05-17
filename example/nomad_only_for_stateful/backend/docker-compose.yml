@@ -56,7 +56,7 @@ services:
   frontend:
     build:
       context: ../frontend
-      dockerfile: Dockerfile
+      dockerfile: ../frontend/Dockerfile
     volumes:
       - ../frontend/build:/usr/share/nginx/html
     restart: unless-stopped
