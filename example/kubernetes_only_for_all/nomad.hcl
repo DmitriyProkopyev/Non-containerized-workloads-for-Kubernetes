@@ -2,7 +2,6 @@
 data_dir = "/opt/nomad/data"
 bind_addr = "0.0.0.0"
 
-
 # Сервер Nomad
 server {
   enabled          = true
@@ -21,15 +20,14 @@ client {
 
   # # Описание хост-тома для Kafka
   # host_volume "kafka" {
-  # path      = "/opt/kafka"
-  # read_only = false
-}
-
+  #   path      = "/opt/kafka"
+  #   read_only = false
+  # }
 }
 
 # Адреса для подключения (укажи внешний IP машины)
 advertise {
-  http = "127.0.0.1:4646"
-  rpc  = "127.0.0.1:4647"
-  serf = "127.0.0.1:4648"
+  http = "192.168.1.113:4646"
+  rpc  = "192.168.1.113:4647"
+  serf = "192.168.1.113:4648"
 }

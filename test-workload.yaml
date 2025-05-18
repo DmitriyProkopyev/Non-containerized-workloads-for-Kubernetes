@@ -1,0 +1,24 @@
+apiVersion: nomad.hashicorp.com/v1alpha1
+kind: NomadStatefulWorkload
+metadata:
+  name: test-workload
+  namespace: default
+spec:
+  replicas: 1
+  resources:
+    cpu: 500
+    memory: 256
+  task:
+    name: nginx
+    driver: docker
+    config:
+      image: nginx:alpine
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: region
+                operator: In
+                values:
+                  - us-west

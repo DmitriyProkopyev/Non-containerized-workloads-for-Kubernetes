@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nomad-controller
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nomad-controller
+  template:
+    metadata:
+      labels:
+        app: nomad-controller
+    spec:
+      serviceAccountName: nomad-controller-sa
+      containers:
+        - name: controller
+          image: mararokkel/nomad-controller:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          env:
+            - name: NOMAD_ADDR
+              value: "http://192.168.1.113:4646"
+            - name: NOMAD_REGION
+              value: "dc1"
